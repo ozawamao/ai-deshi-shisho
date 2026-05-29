@@ -5,8 +5,11 @@ import { getRecognition, speak, cancelSpeak } from '../lib/speech'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
+type Craftsman = { id: string; name: string; craft: string; profile: string | null }
+
 export default function DeshiPage() {
-  const [step, setStep] = useState<'setup' | 'chat' | 'ended'>('setup')
+  const [step, setStep] = useState<'pick' | 'setup' | 'chat' | 'ended'>('pick')
+  const [existing, setExisting] = useState<Craftsman[]>([])
   const [name, setName] = useState('')
   const [craft, setCraft] = useState('')
   const [profile, setProfile] = useState('')
@@ -21,6 +24,32 @@ export default function DeshiPage() {
   const recRef = useRef<any>(null)
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastInteraction = useRef<number>(Date.now())
+
+  // 既存職人をロード
+  useEffect(() => {
+    fetch('/api/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'list_craftsmen' }),
+    })
+      .then(r => r.json())
+      .then(d => setExisting(d.craftsmen || []))
+  }, [])
+
+  async function startWithExisting(c: Craftsman) {
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'create', craftsmanId: c.id }),
+    })
+    const { sessionId, craftsmanId } = await res.json()
+    setSessionId(sessionId)
+    setCraftsmanId(craftsmanId)
+    setName(c.name)
+    setCraft(c.craft)
+    setStep('chat')
+    setTimeout(() => sendToAI('こんにちは。', true), 300)
+  }
 
   // 沈黙5秒で促し
   useEffect(() => {
@@ -122,9 +151,63 @@ export default function DeshiPage() {
     setThinking(false)
   }
 
+  if (step === 'pick') {
+    return (
+      <main className="min-h-screen p-8 bg-amber-50 guild-bg">
+        <header className="max-w-3xl mx-auto mb-6 flex justify-between items-center">
+          <a href="/" className="text-sm text-amber-700 underline">← トップへ</a>
+          <h1 className="font-serif text-2xl text-amber-900">どの師匠から聞き取りますか？</h1>
+        </header>
+
+        <div className="max-w-3xl mx-auto space-y-3">
+          {existing.length > 0 && (
+            <>
+              <h2 className="font-serif text-lg text-amber-900 mt-4">続きから聞く</h2>
+              <ul className="grid sm:grid-cols-2 gap-3">
+                {existing.map(c => (
+                  <li key={c.id}>
+                    <button
+                      onClick={() => startWithExisting(c)}
+                      className="w-full text-left p-5 bg-white/90 border-2 border-amber-300 rounded-lg hover:border-amber-700 hover:shadow"
+                    >
+                      <div className="text-xl font-bold text-amber-900">{c.name}</div>
+                      <div className="text-base text-stone-700">{c.craft}</div>
+                      {c.profile && (
+                        <div className="text-sm text-stone-500 mt-1 line-clamp-2">{c.profile}</div>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <div className="pt-6">
+            <h2 className="font-serif text-lg text-amber-900 mb-2">新しい師匠から聞く</h2>
+            <button
+              onClick={() => setStep('setup')}
+              className="px-6 py-3 bg-amber-700 text-white text-lg rounded-lg hover:bg-amber-800"
+            >
+              + 新しく登録して始める
+            </button>
+            <p className="text-sm text-stone-600 mt-3">
+              事前知識など細かい設定は<a href="/admin/deshi" className="underline">管理画面</a>からも編集できます。
+            </p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (step === 'setup') {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 bg-amber-50 guild-bg">
+        <button
+          onClick={() => setStep('pick')}
+          className="self-start text-sm text-amber-700 underline"
+        >
+          ← 一覧に戻る
+        </button>
         <h1 className="text-3xl font-bold text-amber-900">師匠の情報を教えてください</h1>
         <div className="flex flex-col gap-4 w-full max-w-md">
           <label className="flex flex-col gap-2 text-lg">
