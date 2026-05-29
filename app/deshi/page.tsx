@@ -26,6 +26,13 @@ export default function DeshiPage() {
   const interimRef = useRef<string>('')
   const finalRef = useRef<string>('')
   const sendingRef = useRef(false) // 再入防止 (StrictMode / 連打対策)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  // 新着メッセージで自動下スクロール
+  useEffect(() => {
+    if (!scrollRef.current) return
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [msgs.length, thinking])
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastInteraction = useRef<number>(Date.now())
 
@@ -332,48 +339,53 @@ export default function DeshiPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-amber-50 guild-bg">
-      <header className="p-4 bg-amber-100 flex justify-between items-center gap-3 flex-wrap">
-        <h2 className="text-xl text-amber-900">{name} 師匠 — {craft}</h2>
-        <div className="flex gap-3 items-center">
-          <label className="flex items-center gap-2 text-base text-stone-700">
-            <input
-              type="checkbox"
-              checked={autoSpeak}
-              onChange={e => setAutoSpeak(e.target.checked)}
-              className="w-5 h-5"
-            />
-            読み上げ
-          </label>
-          <button
-            onClick={endSession}
-            className="px-4 py-2 bg-stone-600 text-white rounded-lg text-base"
-          >
-            セッションを終える
-          </button>
+    <main className="h-[100dvh] flex flex-col bg-stone-50">
+      {/* ヘッダー: 固定 */}
+      <header className="shrink-0 px-4 py-3 bg-white border-b border-stone-200 flex justify-between items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-amber-600 text-white flex items-center justify-center text-lg shrink-0">
+            🧒
+          </div>
+          <div className="min-w-0">
+            <div className="font-bold text-stone-800 truncate">AI弟子</div>
+            <div className="text-xs text-stone-500 truncate">
+              {name} 師匠 — {craft}
+            </div>
+          </div>
         </div>
+        <button
+          onClick={endSession}
+          className="px-3 py-1.5 bg-stone-600 hover:bg-stone-700 text-white rounded-lg text-xs shrink-0"
+        >
+          終える
+        </button>
       </header>
 
-      <section className="flex-1 overflow-y-auto p-6 space-y-4 max-w-3xl w-full mx-auto">
-        {msgs.map((m, i) => (
-          <div
-            key={i}
-            className={`p-4 rounded-2xl text-lg leading-relaxed ${
-              m.role === 'user'
-                ? 'bg-white border-2 border-amber-200 ml-auto max-w-[80%]'
-                : 'bg-amber-700 text-white mr-auto max-w-[80%]'
-            }`}
-            style={{ fontSize: '18px' }}
-          >
-            {m.content}
-          </div>
-        ))}
-        {thinking && <div className="text-stone-500 text-lg">考えています…</div>}
+      {/* メッセージ領域: 残り高さ、自動下スクロール */}
+      <section
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-3"
+      >
+        <div className="max-w-2xl w-full mx-auto space-y-3">
+          {msgs.map((m, i) => (
+            <Bubble key={i} role={m.role} content={m.content} userInitial={(name || '師').slice(0, 1)} />
+          ))}
+          {thinking && (
+            <div className="flex gap-2 items-end">
+              <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center shrink-0">
+                🧒
+              </div>
+              <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-2 text-stone-500 text-sm">
+                考えています…
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
-      <footer className="p-4 sm:p-6 bg-amber-100">
-        <div className="w-full max-w-2xl mx-auto flex gap-2 items-stretch">
-          <input
+      <footer className="shrink-0 px-3 sm:px-6 py-3 bg-white border-t border-stone-200">
+        <div className="w-full max-w-2xl mx-auto flex gap-2 items-end">
+          <textarea
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
             onKeyDown={e => {
@@ -387,8 +399,9 @@ export default function DeshiPage() {
                 sendToAI(t)
               }
             }}
-            placeholder="師匠の言葉を書いて Enter で送信"
-            className="flex-1 p-3 text-lg rounded-lg border-2 border-amber-300 bg-white"
+            rows={1}
+            placeholder="メッセージを書く"
+            className="flex-1 p-2.5 text-base rounded-2xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-amber-500 outline-none resize-none max-h-32"
           />
           <button
             onClick={() => {
@@ -399,12 +412,50 @@ export default function DeshiPage() {
               }
             }}
             disabled={!textInput.trim() || thinking}
-            className="px-5 py-3 bg-amber-700 text-white text-lg rounded-lg disabled:bg-stone-400"
+            className="w-11 h-11 rounded-full bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center text-xl disabled:bg-stone-300 shrink-0"
+            aria-label="送信"
           >
-            送る
+            ➤
           </button>
         </div>
       </footer>
     </main>
+  )
+}
+
+/** LINE風メッセージバブル */
+function Bubble({
+  role,
+  content,
+  userInitial,
+}: {
+  role: 'user' | 'assistant'
+  content: string
+  userInitial: string
+}) {
+  const isMe = role === 'user'
+  if (isMe) {
+    return (
+      <div className="flex gap-2 items-end justify-end">
+        <div
+          className="max-w-[80%] bg-amber-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm"
+        >
+          {content}
+        </div>
+        <div className="w-8 h-8 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm shrink-0">
+          {userInitial}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex gap-2 items-end">
+      <div className="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-sm shrink-0">
+        🧒
+      </div>
+      <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
+        {content}
+      </div>
+    </div>
   )
 }
