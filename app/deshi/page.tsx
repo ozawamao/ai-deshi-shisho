@@ -124,7 +124,7 @@ export default function DeshiPage() {
 
   if (step === 'setup') {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 bg-amber-50">
+      <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 bg-amber-50 guild-bg">
         <h1 className="text-3xl font-bold text-amber-900">師匠の情報を教えてください</h1>
         <div className="flex flex-col gap-4 w-full max-w-md">
           <label className="flex flex-col gap-2 text-lg">
@@ -169,7 +169,7 @@ export default function DeshiPage() {
 
   if (step === 'ended') {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 bg-amber-50">
+      <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8 bg-amber-50 guild-bg">
         <h1 className="text-3xl font-bold text-amber-900">本日はありがとうございました</h1>
         <pre className="whitespace-pre-wrap text-lg text-stone-700 bg-white p-6 rounded-lg max-w-xl">
           {endResult}
@@ -180,7 +180,7 @@ export default function DeshiPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-amber-50">
+    <main className="min-h-screen flex flex-col bg-amber-50 guild-bg">
       <header className="p-4 bg-amber-100 flex justify-between items-center gap-3 flex-wrap">
         <h2 className="text-xl text-amber-900">{name} 師匠 — {craft}</h2>
         <div className="flex gap-3 items-center">

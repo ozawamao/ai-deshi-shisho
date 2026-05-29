@@ -78,5 +78,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ craftsman: data })
   }
 
+  if (body.action === 'update_craftsman') {
+    const { craftsmanId, name, craft, profile, apprentice_context, teaching_style } = body
+    const patch: any = {}
+    if (name !== undefined) patch.name = name
+    if (craft !== undefined) patch.craft = craft
+    if (profile !== undefined) patch.profile = profile
+    if (apprentice_context !== undefined) patch.apprentice_context = apprentice_context
+    if (teaching_style !== undefined) patch.teaching_style = teaching_style
+    const { data, error } = await admin
+      .from('craftsmen')
+      .update(patch)
+      .eq('id', craftsmanId)
+      .select()
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ craftsman: data })
+  }
+
+  if (body.action === 'create_craftsman') {
+    const { name, craft, profile, apprentice_context, teaching_style } = body
+    const { data, error } = await admin
+      .from('craftsmen')
+      .insert({ name, craft, profile, apprentice_context, teaching_style })
+      .select()
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ craftsman: data })
+  }
+
   return NextResponse.json({ error: 'unknown action' }, { status: 400 })
 }

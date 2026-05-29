@@ -38,10 +38,20 @@ export async function POST(req: NextRequest) {
     const summary = (nodes || [])
       .map(n => `- [${n.category}] ${n.content}`)
       .join('\n')
-    system = DESHI_SYSTEM(craftsman.profile || '', summary)
+    system = DESHI_SYSTEM(
+      craftsman.profile || '',
+      summary,
+      craftsman.apprentice_context || '',
+    )
   } else {
     const md = await loadKnowledgeMd(craftsmanId)
-    system = SHISHO_SYSTEM(craftsman.name, craftsman.craft, md || '（まだ知識が記録されていません）', learnerContext || '')
+    system = SHISHO_SYSTEM(
+      craftsman.name,
+      craftsman.craft,
+      md || '（まだ知識が記録されていません）',
+      learnerContext || '',
+      craftsman.teaching_style || '',
+    )
   }
 
   const messages = [

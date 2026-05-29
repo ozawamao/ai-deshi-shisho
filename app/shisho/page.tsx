@@ -80,7 +80,7 @@ export default function ShishoPage() {
 
   if (!selected) {
     return (
-      <main className="min-h-screen p-8 bg-stone-50">
+      <main className="min-h-screen p-8 bg-stone-50 guild-bg-stone">
         <h1 className="text-3xl font-bold text-stone-800 mb-8">どの師匠から学びますか？</h1>
         {craftsmen.length === 0 ? (
           <p className="text-stone-600">
@@ -108,7 +108,7 @@ export default function ShishoPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-stone-50">
+    <main className="min-h-screen flex flex-col bg-stone-50 guild-bg-stone">
       <header className="p-4 bg-stone-200 flex justify-between items-center">
         <div>
           <div className="text-lg font-bold text-stone-800">{selected.name} 師匠</div>

@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #fbf5e9;
+  --foreground: #2a1a0c;
+  --guild-amber: #92400e;
+  --guild-stone: #44403c;
+  --guild-gold: #b58e3a;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-serif, "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+}
+
+/* ギルド風の細い装飾枠 (角を強調) */
+.guild-frame {
+  position: relative;
+  border: 2px solid var(--guild-gold);
+  box-shadow:
+    inset 0 0 0 1px rgba(181, 142, 58, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.guild-frame::before,
+.guild-frame::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--guild-gold);
+}
+.guild-frame::before {
+  top: -8px;
+  left: -8px;
+  border-right: none;
+  border-bottom: none;
+}
+.guild-frame::after {
+  bottom: -8px;
+  right: -8px;
+  border-left: none;
+  border-top: none;
+}
+
+/* トップの左右半分背景 */
+.split-bg {
+  background:
+    linear-gradient(to right,
+      #f4e4c1 0%,
+      #f4e4c1 49.5%,
+      #b58e3a 49.5%,
+      #b58e3a 50.5%,
+      #d6d3d1 50.5%,
+      #d6d3d1 100%
+    );
+}
+
+/* 弟子・師匠の薄い背景画像 */
+.guild-bg {
+  background-image: url('/images/guild-scene.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+.guild-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(251, 245, 233, 0.88);
+  pointer-events: none;
+  z-index: 0;
+}
+.guild-bg > * { position: relative; z-index: 1; }
+
+.guild-bg-stone {
+  background-image: url('/images/guild-scene.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+.guild-bg-stone::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(245, 245, 244, 0.9);
+  pointer-events: none;
+  z-index: 0;
+}
+.guild-bg-stone > * { position: relative; z-index: 1; }
+
+/* トップ用：左右で違うフィルター */
+.guild-top-bg {
+  position: fixed;
+  inset: 0;
+  background-image: url('/images/guild-scene.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 飾り文字 */
+.script {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+  letter-spacing: 0.08em;
 }
