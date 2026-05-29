@@ -25,6 +25,7 @@ export default function DeshiPage() {
   const recRef = useRef<any>(null)
   const interimRef = useRef<string>('')
   const finalRef = useRef<string>('')
+  const sendingRef = useRef(false) // 再入防止 (StrictMode / 連打対策)
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastInteraction = useRef<number>(Date.now())
 
@@ -86,6 +87,8 @@ export default function DeshiPage() {
   }
 
   async function sendToAI(userText: string, isGreeting = false) {
+    if (sendingRef.current) return  // 二重送信防止
+    sendingRef.current = true
     setThinking(true)
     const historyForApi = msgs
     if (!isGreeting) {
@@ -111,12 +114,14 @@ export default function DeshiPage() {
       setMsgs(m => [...m, { role: 'assistant', content: 'すみません、うまく聞こえませんでした。' }])
     } finally {
       setThinking(false)
+      sendingRef.current = false
     }
   }
 
   // タップでトグル: 押すと録音開始、もう一度押すと停止 → AI送信
   // (押し続け方式はスマホで一瞬で終わるため不採用)
   async function startRec() {
+    if (recording) return // 既に録音中なら無視
     if (!isSpeechSupported()) {
       alert('お使いのブラウザは音声入力に対応していません。Chrome または Safari (最新版) でお試しください。')
       return
@@ -176,12 +181,13 @@ export default function DeshiPage() {
   }
 
   function stopRec() {
+    if (!recording) return // 既に停止中なら無視
     if (recRef.current) {
       ;(recRef.current as any).__keepGoing = false
       try { recRef.current.stop() } catch {}
+      recRef.current = null
     }
     setRecording(false)
-    // 確定テキストを送信
     const text = (finalRef.current + ' ' + interimRef.current).trim()
     finalRef.current = ''
     interimRef.current = ''

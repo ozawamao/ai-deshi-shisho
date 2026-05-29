@@ -4,7 +4,9 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-export const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+// 既知の有効モデル (guild と同じ系統に揃える)。
+// 'claude-sonnet-4-6' は存在しないためフォールバックで API エラー or 低品質になっていた。
+export const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
 
 export const DESHI_SYSTEM = (
   craftsmanProfile: string,

@@ -18,6 +18,7 @@ export default function ShishoPage() {
   const recRef = useRef<any>(null)
   const interimRef = useRef<string>('')
   const finalRef = useRef<string>('')
+  const sendingRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/session', {
@@ -31,6 +32,8 @@ export default function ShishoPage() {
 
   async function send(userText: string) {
     if (!selected || !userText.trim()) return
+    if (sendingRef.current) return // 二重送信防止
+    sendingRef.current = true
     setThinking(true)
     const history = msgs
     setMsgs(m => [...m, { role: 'user', content: userText }])
@@ -51,11 +54,13 @@ export default function ShishoPage() {
       if (autoSpeak) speak(text)
     } finally {
       setThinking(false)
+      sendingRef.current = false
     }
   }
 
   // タップでトグル
   async function startRec() {
+    if (recording) return
     if (!isSpeechSupported()) {
       alert('お使いのブラウザは音声入力に対応していません。Chrome または Safari (最新版) でお試しください。')
       return
@@ -103,9 +108,11 @@ export default function ShishoPage() {
   }
 
   function stopRec() {
+    if (!recording) return
     if (recRef.current) {
       ;(recRef.current as any).__keepGoing = false
       try { recRef.current.stop() } catch {}
+      recRef.current = null
     }
     setRecording(false)
     const text = (finalRef.current + ' ' + interimRef.current).trim()
