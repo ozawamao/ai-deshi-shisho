@@ -85,7 +85,6 @@ export default function DeshiPage() {
     // 弟子から先に話しかける (API失敗の影響を受けない固定文)
     const greeting = `${name || '師匠'}、本日はよろしくお願いいたします。\n${craft || 'この技'} について、ぜひ教えていただきたいです。\nまず、今日のお仕事はどんなことから始められますか?`
     setMsgs([{ role: 'assistant', content: greeting }])
-    if (autoSpeak) speak(greeting)
   }
 
   async function sendToAI(userText: string, isGreeting = false) {
@@ -108,21 +107,20 @@ export default function DeshiPage() {
           history: historyForApi,
         }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const errBody = await res.text().catch(() => '')
-        throw new Error(`API ${res.status}: ${errBody.slice(0, 200)}`)
+        const msg = data?.error || `HTTP ${res.status}`
+        throw new Error(msg)
       }
-      const data = await res.json()
       const text = (data?.text || '').trim()
-      if (!text) throw new Error('empty response')
+      if (!text) throw new Error('AIから空の応答が返ってきた')
       setMsgs(m => [...m, { role: 'assistant', content: text }])
       lastInteraction.current = Date.now()
-      if (autoSpeak) speak(text)
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[deshi chat] error:', err)
       setMsgs(m => [...m, {
         role: 'assistant',
-        content: 'すみません、応答の取得に失敗しました。少し待ってからもう一度お願いします。',
+        content: `⚠ エラー: ${err?.message || '通信に失敗しました'}\n\n(管理者へ: 上記メッセージを開発者に伝えてください)`,
       }])
     } finally {
       setThinking(false)
@@ -373,13 +371,7 @@ export default function DeshiPage() {
         {thinking && <div className="text-stone-500 text-lg">考えています…</div>}
       </section>
 
-      <footer className="p-4 sm:p-6 flex flex-col items-stretch gap-3 bg-amber-100">
-        {recording && interimText && (
-          <div className="w-full max-w-2xl mx-auto p-3 rounded-lg border-2 border-amber-400 bg-white text-base text-stone-700 italic">
-            {interimText}
-          </div>
-        )}
-
+      <footer className="p-4 sm:p-6 bg-amber-100">
         <div className="w-full max-w-2xl mx-auto flex gap-2 items-stretch">
           <input
             value={textInput}
@@ -395,7 +387,7 @@ export default function DeshiPage() {
                 sendToAI(t)
               }
             }}
-            placeholder="ここに書いて Enter で送信"
+            placeholder="師匠の言葉を書いて Enter で送信"
             className="flex-1 p-3 text-lg rounded-lg border-2 border-amber-300 bg-white"
           />
           <button
@@ -411,21 +403,7 @@ export default function DeshiPage() {
           >
             送る
           </button>
-          {/* 音声入力はサブ。タップでトグル */}
-          <button
-            onClick={() => (recording ? stopRec() : startRec())}
-            disabled={thinking}
-            title="音声で話す (タップで開始/停止)"
-            className={`px-4 rounded-lg text-white text-xl transition disabled:bg-stone-400 ${
-              recording ? 'bg-red-600 animate-pulse' : 'bg-amber-700/80 hover:bg-amber-800'
-            }`}
-          >
-            {recording ? '⏹' : '🎙'}
-          </button>
         </div>
-        <p className="text-xs text-stone-500 text-center">
-          文字入力がメイン。マイクボタンは音声入力(対応ブラウザのみ)
-        </p>
       </footer>
     </main>
   )

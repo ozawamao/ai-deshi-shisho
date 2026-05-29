@@ -49,20 +49,19 @@ export default function ShishoPage() {
           history,
         }),
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const errBody = await res.text().catch(() => '')
-        throw new Error(`API ${res.status}: ${errBody.slice(0, 200)}`)
+        const msg = data?.error || `HTTP ${res.status}`
+        throw new Error(msg)
       }
-      const data = await res.json()
       const text = (data?.text || '').trim()
-      if (!text) throw new Error('empty response')
+      if (!text) throw new Error('AIから空の応答が返ってきた')
       setMsgs(m => [...m, { role: 'assistant', content: text }])
-      if (autoSpeak) speak(text)
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[shisho chat] error:', err)
       setMsgs(m => [...m, {
         role: 'assistant',
-        content: 'すみません、応答の取得に失敗しました。少し待ってからもう一度お願いします。',
+        content: `⚠ エラー: ${err?.message || '通信に失敗しました'}`,
       }])
     } finally {
       setThinking(false)
@@ -215,31 +214,18 @@ export default function ShishoPage() {
         {thinking && <div className="text-stone-500">師匠が考えています…</div>}
       </section>
 
-      <footer className="p-4 bg-stone-100 max-w-3xl w-full mx-auto space-y-2">
-        {recording && interimText && (
-          <div className="p-2 rounded border border-stone-300 bg-white text-stone-700 italic text-sm">
-            {interimText}
-          </div>
-        )}
+      <footer className="p-4 bg-stone-100 max-w-3xl w-full mx-auto">
         <div className="flex gap-2">
-          <button
-            onClick={() => (recording ? stopRec() : startRec())}
-            className={`px-4 rounded-lg text-white text-xl ${recording ? 'bg-red-600 animate-pulse' : 'bg-stone-600 hover:bg-stone-700'}`}
-            title="タップで録音開始 / もう一度タップで停止して送信"
-          >
-            {recording ? '⏹' : '🎤'}
-          </button>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => {
               if (e.key !== 'Enter' || e.shiftKey) return
-              // IME変換確定 Enter で誤送信させない
               if (e.nativeEvent.isComposing || (e as any).keyCode === 229) return
               e.preventDefault()
               send(input)
             }}
-            placeholder="質問を書く…"
+            placeholder="質問を書いて Enter で送信"
             className="flex-1 p-3 rounded-lg border border-stone-300"
           />
           <button

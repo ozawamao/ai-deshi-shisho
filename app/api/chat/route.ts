@@ -15,16 +15,35 @@ export const runtime = 'nodejs'
 //   learnerContext?: string,
 // }
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { mode, sessionId, craftsmanId, userText, history = [], learnerContext } = body
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY が未設定です (Vercel の Environment Variables を確認)' },
+        { status: 500 }
+      )
+    }
+    const body = await req.json()
+    const { mode, sessionId, craftsmanId, userText, history = [], learnerContext } = body
 
-  const admin = supabaseAdmin()
-  const { data: craftsman } = await admin
-    .from('craftsmen')
-    .select('*')
-    .eq('id', craftsmanId)
-    .single()
-  if (!craftsman) return NextResponse.json({ error: 'craftsman not found' }, { status: 404 })
+    if (!craftsmanId) {
+      return NextResponse.json({ error: 'craftsmanId が無い (セッション作成に失敗している可能性)' }, { status: 400 })
+    }
+    if (!userText || typeof userText !== 'string') {
+      return NextResponse.json({ error: 'userText 必須' }, { status: 400 })
+    }
+
+    const admin = supabaseAdmin()
+    const { data: craftsman, error: cErr } = await admin
+      .from('craftsmen')
+      .select('*')
+      .eq('id', craftsmanId)
+      .single()
+    if (cErr || !craftsman) {
+      return NextResponse.json(
+        { error: `craftsman not found (${craftsmanId}): ${cErr?.message || 'no row'}` },
+        { status: 404 }
+      )
+    }
 
   let system: string
   if (mode === 'deshi') {
@@ -67,12 +86,19 @@ export async function POST(req: NextRequest) {
   })
   const text = res.content.map(c => (c.type === 'text' ? c.text : '')).join('')
 
-  if (mode === 'deshi' && sessionId) {
-    await admin.from('utterances').insert([
-      { session_id: sessionId, role: 'user', content: userText },
-      { session_id: sessionId, role: 'assistant', content: text },
-    ])
-  }
+    if (mode === 'deshi' && sessionId) {
+      await admin.from('utterances').insert([
+        { session_id: sessionId, role: 'user', content: userText },
+        { session_id: sessionId, role: 'assistant', content: text },
+      ])
+    }
 
-  return NextResponse.json({ text })
+    return NextResponse.json({ text })
+  } catch (err: any) {
+    console.error('[chat] error', err)
+    return NextResponse.json(
+      { error: err?.message || 'internal error', model: process.env.ANTHROPIC_MODEL || 'default' },
+      { status: 500 }
+    )
+  }
 }
