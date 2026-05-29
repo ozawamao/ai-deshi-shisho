@@ -80,18 +80,30 @@ export default function DeshiPage() {
 
   async function start() {
     if (!name.trim() || !craft.trim()) return
-    const res = await fetch('/api/session', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'create', craftsmanName: name, craft, profile }),
-    })
-    const { sessionId, craftsmanId } = await res.json()
-    setSessionId(sessionId)
-    setCraftsmanId(craftsmanId)
-    setStep('chat')
-    // 弟子から先に話しかける (API失敗の影響を受けない固定文)
-    const greeting = `${name || '師匠'}、本日はよろしくお願いいたします。\n${craft || 'この技'} について、ぜひ教えていただきたいです。\nまず、今日のお仕事はどんなことから始められますか?`
-    setMsgs([{ role: 'assistant', content: greeting }])
+    try {
+      const res = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'create', craftsmanName: name, craft, profile }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const msg = data?.error || `HTTP ${res.status}`
+        alert(`セッション作成に失敗しました:\n${msg}\n\nこの内容を管理者に伝えてください。`)
+        return
+      }
+      if (!data?.craftsmanId) {
+        alert(`セッション作成のレスポンスが不正です: ${JSON.stringify(data).slice(0, 300)}`)
+        return
+      }
+      setSessionId(data.sessionId)
+      setCraftsmanId(data.craftsmanId)
+      setStep('chat')
+      const greeting = `${name || '師匠'}、本日はよろしくお願いいたします。\n${craft || 'この技'} について、ぜひ教えていただきたいです。\nまず、今日のお仕事はどんなことから始められますか?`
+      setMsgs([{ role: 'assistant', content: greeting }])
+    } catch (err: any) {
+      alert(`通信エラー: ${err?.message || err}`)
+    }
   }
 
   async function sendToAI(userText: string, isGreeting = false) {
