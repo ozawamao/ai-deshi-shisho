@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { getRecognition, speak, cancelSpeak } from '../lib/speech'
+import { getRecognition, speak, cancelSpeak, ensureMicPermission, isSpeechSupported } from '../lib/speech'
 
 type Craftsman = { id: string; name: string; craft: string; profile: string | null }
 type Msg = { role: 'user' | 'assistant'; content: string }
@@ -14,7 +14,10 @@ export default function ShishoPage() {
   const [thinking, setThinking] = useState(false)
   const [recording, setRecording] = useState(false)
   const [autoSpeak, setAutoSpeak] = useState(true)
+  const [interimText, setInterimText] = useState('')
   const recRef = useRef<any>(null)
+  const interimRef = useRef<string>('')
+  const finalRef = useRef<string>('')
 
   useEffect(() => {
     fetch('/api/session', {
@@ -51,31 +54,65 @@ export default function ShishoPage() {
     }
   }
 
-  function startRec() {
-    const rec = getRecognition()
-    if (!rec) {
-      alert('音声入力に対応していないブラウザです。')
+  // タップでトグル
+  async function startRec() {
+    if (!isSpeechSupported()) {
+      alert('お使いのブラウザは音声入力に対応していません。Chrome または Safari (最新版) でお試しください。')
       return
     }
+    const ok = await ensureMicPermission()
+    if (!ok) {
+      alert('マイクの使用が許可されていません。ブラウザの設定で許可してください。')
+      return
+    }
+    const rec = getRecognition()
+    if (!rec) return
     cancelSpeak()
+    interimRef.current = ''
+    finalRef.current = ''
+    setInterimText('')
     recRef.current = rec
     setRecording(true)
     rec.onresult = (e: any) => {
-      const text = e.results[0]?.[0]?.transcript
-      if (text) {
-        setInput(text)
-        // 音声入力したらそのまま送る
-        send(text)
+      let interim = ''
+      let final = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i]
+        if (r.isFinal) final += r[0]?.transcript || ''
+        else interim += r[0]?.transcript || ''
+      }
+      if (final) finalRef.current += final
+      interimRef.current = interim
+      setInterimText((finalRef.current + ' ' + interim).trim())
+    }
+    rec.onerror = (e: any) => {
+      console.warn('SpeechRecognition error', e?.error)
+      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
+        alert('マイクが許可されていません。')
       }
     }
-    rec.onerror = () => setRecording(false)
-    rec.onend = () => setRecording(false)
-    rec.start()
+    rec.onend = () => {
+      if (recRef.current && (recRef.current as any).__keepGoing) {
+        try { rec.start() } catch {}
+      } else {
+        setRecording(false)
+      }
+    }
+    ;(rec as any).__keepGoing = true
+    try { rec.start() } catch { setRecording(false) }
   }
 
   function stopRec() {
-    try { recRef.current?.stop() } catch {}
+    if (recRef.current) {
+      ;(recRef.current as any).__keepGoing = false
+      try { recRef.current.stop() } catch {}
+    }
     setRecording(false)
+    const text = (finalRef.current + ' ' + interimRef.current).trim()
+    finalRef.current = ''
+    interimRef.current = ''
+    setInterimText('')
+    if (text) send(text)
   }
 
   if (!selected) {
@@ -159,31 +196,41 @@ export default function ShishoPage() {
         {thinking && <div className="text-stone-500">師匠が考えています…</div>}
       </section>
 
-      <footer className="p-4 bg-stone-100 max-w-3xl w-full mx-auto flex gap-2">
-        <button
-          onMouseDown={startRec}
-          onMouseUp={stopRec}
-          onTouchStart={startRec}
-          onTouchEnd={stopRec}
-          className={`px-4 rounded-lg text-white text-xl ${recording ? 'bg-red-600 animate-pulse' : 'bg-stone-600 hover:bg-stone-700'}`}
-          title="押している間だけ音声入力"
-        >
-          🎤
-        </button>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
-          placeholder="質問を書く…"
-          className="flex-1 p-3 rounded-lg border border-stone-300"
-        />
-        <button
-          onClick={() => send(input)}
-          disabled={!input.trim() || thinking}
-          className="px-5 py-3 bg-stone-700 text-white rounded-lg disabled:bg-stone-400"
-        >
-          送る
-        </button>
+      <footer className="p-4 bg-stone-100 max-w-3xl w-full mx-auto space-y-2">
+        {recording && interimText && (
+          <div className="p-2 rounded border border-stone-300 bg-white text-stone-700 italic text-sm">
+            {interimText}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={() => (recording ? stopRec() : startRec())}
+            className={`px-4 rounded-lg text-white text-xl ${recording ? 'bg-red-600 animate-pulse' : 'bg-stone-600 hover:bg-stone-700'}`}
+            title="タップで録音開始 / もう一度タップで停止して送信"
+          >
+            {recording ? '⏹' : '🎤'}
+          </button>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key !== 'Enter' || e.shiftKey) return
+              // IME変換確定 Enter で誤送信させない
+              if (e.nativeEvent.isComposing || (e as any).keyCode === 229) return
+              e.preventDefault()
+              send(input)
+            }}
+            placeholder="質問を書く…"
+            className="flex-1 p-3 rounded-lg border border-stone-300"
+          />
+          <button
+            onClick={() => send(input)}
+            disabled={!input.trim() || thinking}
+            className="px-5 py-3 bg-stone-700 text-white rounded-lg disabled:bg-stone-400"
+          >
+            送る
+          </button>
+        </div>
       </footer>
     </main>
   )

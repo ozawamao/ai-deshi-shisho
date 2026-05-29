@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { getRecognition, speak, cancelSpeak } from '../lib/speech'
+import { getRecognition, speak, cancelSpeak, ensureMicPermission, isSpeechSupported } from '../lib/speech'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -21,7 +21,10 @@ export default function DeshiPage() {
   const [endResult, setEndResult] = useState<string>('')
   const [textInput, setTextInput] = useState('')
   const [autoSpeak, setAutoSpeak] = useState(true)
+  const [interimText, setInterimText] = useState('') // 録音中の途中認識テキスト
   const recRef = useRef<any>(null)
+  const interimRef = useRef<string>('')
+  const finalRef = useRef<string>('')
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastInteraction = useRef<number>(Date.now())
 
@@ -111,29 +114,79 @@ export default function DeshiPage() {
     }
   }
 
-  function startRec() {
-    const rec = getRecognition()
-    if (!rec) {
-      alert('お使いのブラウザは音声入力に対応していません。Chrome または Safari でお試しください。')
+  // タップでトグル: 押すと録音開始、もう一度押すと停止 → AI送信
+  // (押し続け方式はスマホで一瞬で終わるため不採用)
+  async function startRec() {
+    if (!isSpeechSupported()) {
+      alert('お使いのブラウザは音声入力に対応していません。Chrome または Safari (最新版) でお試しください。')
       return
     }
+    // iOS Safari 向けに先にマイク許可を取る
+    const ok = await ensureMicPermission()
+    if (!ok) {
+      alert('マイクの使用が許可されていません。ブラウザの設定でマイクを許可してください。')
+      return
+    }
+    const rec = getRecognition()
+    if (!rec) return
     cancelSpeak()
+    interimRef.current = ''
+    finalRef.current = ''
+    setInterimText('')
     recRef.current = rec
     setRecording(true)
     rec.onresult = (e: any) => {
-      const text = e.results[0]?.[0]?.transcript
-      if (text) sendToAI(text)
+      let interim = ''
+      let final = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i]
+        if (r.isFinal) final += r[0]?.transcript || ''
+        else interim += r[0]?.transcript || ''
+      }
+      if (final) finalRef.current += final
+      interimRef.current = interim
+      setInterimText((finalRef.current + ' ' + interim).trim())
     }
-    rec.onerror = () => setRecording(false)
-    rec.onend = () => setRecording(false)
-    rec.start()
+    rec.onerror = (e: any) => {
+      console.warn('SpeechRecognition error', e?.error)
+      if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed') {
+        alert('マイクが許可されていません。設定から許可してください。')
+      } else if (e?.error === 'no-speech') {
+        // 何も言わなくても閉じない (ユーザーが再度話す可能性)
+      } else if (e?.error) {
+        // network 等
+        console.warn('speech error:', e.error)
+      }
+    }
+    rec.onend = () => {
+      // continuous=true でも勝手に止まることがある → recording 中なら自動再開
+      if (recRef.current && (recRef.current as any).__keepGoing) {
+        try { rec.start() } catch {}
+      } else {
+        setRecording(false)
+      }
+    }
+    ;(rec as any).__keepGoing = true
+    try {
+      rec.start()
+    } catch (err) {
+      console.warn('rec.start failed', err)
+      setRecording(false)
+    }
   }
 
   function stopRec() {
     if (recRef.current) {
+      ;(recRef.current as any).__keepGoing = false
       try { recRef.current.stop() } catch {}
     }
     setRecording(false)
+    // 確定テキストを送信
+    const text = (finalRef.current + ' ' + interimRef.current).trim()
+    finalRef.current = ''
+    interimRef.current = ''
+    setInterimText('')
+    if (text) sendToAI(text)
   }
 
   async function endSession() {
@@ -304,18 +357,24 @@ export default function DeshiPage() {
 
       <footer className="p-6 flex flex-col items-center gap-4 bg-amber-100">
         <button
-          onMouseDown={startRec}
-          onMouseUp={stopRec}
-          onTouchStart={startRec}
-          onTouchEnd={stopRec}
+          onClick={() => (recording ? stopRec() : startRec())}
           disabled={thinking}
           className={`w-32 h-32 rounded-full text-white text-xl shadow-2xl transition ${
-            recording ? 'bg-red-600 scale-110' : 'bg-amber-700 hover:bg-amber-800'
+            recording ? 'bg-red-600 scale-110 animate-pulse' : 'bg-amber-700 hover:bg-amber-800'
           } disabled:bg-stone-400`}
         >
-          {recording ? '聞いています…' : '押して話す'}
+          {recording ? '⏹\n停止' : '🎙\n話す'}
         </button>
-        <p className="text-base text-stone-600">ボタンを押している間、お話しください</p>
+        <p className="text-base text-stone-600">
+          {recording
+            ? 'タップで停止 → 認識した内容を送ります'
+            : 'タップで録音開始。終わったらもう一度タップ'}
+        </p>
+        {recording && interimText && (
+          <div className="w-full max-w-2xl p-3 rounded-lg border-2 border-amber-400 bg-white text-lg text-stone-700 italic">
+            {interimText}
+          </div>
+        )}
 
         <div className="w-full max-w-2xl flex items-center gap-2 mt-2">
           <div className="flex-1 h-px bg-amber-300" />
@@ -328,13 +387,14 @@ export default function DeshiPage() {
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                if (textInput.trim() && !thinking) {
-                  const t = textInput.trim()
-                  setTextInput('')
-                  sendToAI(t)
-                }
+              // IME 変換確定の Enter は誤送信させない
+              if (e.key !== 'Enter' || e.shiftKey) return
+              if (e.nativeEvent.isComposing || (e as any).keyCode === 229) return
+              e.preventDefault()
+              if (textInput.trim() && !thinking) {
+                const t = textInput.trim()
+                setTextInput('')
+                sendToAI(t)
               }
             }}
             placeholder="文字で入力する場合はこちら"
