@@ -13,7 +13,7 @@ export default function ShishoPage() {
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const [recording, setRecording] = useState(false)
-  const [autoSpeak, setAutoSpeak] = useState(false)
+  const [autoSpeak, setAutoSpeak] = useState(true)
   const recRef = useRef<any>(null)
 
   useEffect(() => {
@@ -62,7 +62,11 @@ export default function ShishoPage() {
     setRecording(true)
     rec.onresult = (e: any) => {
       const text = e.results[0]?.[0]?.transcript
-      if (text) setInput(text)
+      if (text) {
+        setInput(text)
+        // 音声入力したらそのまま送る
+        send(text)
+      }
     }
     rec.onerror = () => setRecording(false)
     rec.onend = () => setRecording(false)
@@ -161,8 +165,8 @@ export default function ShishoPage() {
           onMouseUp={stopRec}
           onTouchStart={startRec}
           onTouchEnd={stopRec}
-          className={`px-3 rounded-lg text-white ${recording ? 'bg-red-600' : 'bg-stone-600'}`}
-          title="押している間、音声入力"
+          className={`px-4 rounded-lg text-white text-xl ${recording ? 'bg-red-600 animate-pulse' : 'bg-stone-600 hover:bg-stone-700'}`}
+          title="押している間だけ音声入力"
         >
           🎤
         </button>
