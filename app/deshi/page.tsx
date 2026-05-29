@@ -82,8 +82,10 @@ export default function DeshiPage() {
     setSessionId(sessionId)
     setCraftsmanId(craftsmanId)
     setStep('chat')
-    // 挨拶
-    setTimeout(() => sendToAI('こんにちは。', true), 300)
+    // 弟子から先に話しかける (API失敗の影響を受けない固定文)
+    const greeting = `${name || '師匠'}、本日はよろしくお願いいたします。\n${craft || 'この技'} について、ぜひ教えていただきたいです。\nまず、今日のお仕事はどんなことから始められますか?`
+    setMsgs([{ role: 'assistant', content: greeting }])
+    if (autoSpeak) speak(greeting)
   }
 
   async function sendToAI(userText: string, isGreeting = false) {
@@ -106,12 +108,22 @@ export default function DeshiPage() {
           history: historyForApi,
         }),
       })
-      const { text } = await res.json()
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '')
+        throw new Error(`API ${res.status}: ${errBody.slice(0, 200)}`)
+      }
+      const data = await res.json()
+      const text = (data?.text || '').trim()
+      if (!text) throw new Error('empty response')
       setMsgs(m => [...m, { role: 'assistant', content: text }])
       lastInteraction.current = Date.now()
       if (autoSpeak) speak(text)
-    } catch {
-      setMsgs(m => [...m, { role: 'assistant', content: 'すみません、うまく聞こえませんでした。' }])
+    } catch (err) {
+      console.warn('[deshi chat] error:', err)
+      setMsgs(m => [...m, {
+        role: 'assistant',
+        content: 'すみません、応答の取得に失敗しました。少し待ってからもう一度お願いします。',
+      }])
     } finally {
       setThinking(false)
       sendingRef.current = false
@@ -361,40 +373,20 @@ export default function DeshiPage() {
         {thinking && <div className="text-stone-500 text-lg">考えています…</div>}
       </section>
 
-      <footer className="p-6 flex flex-col items-center gap-4 bg-amber-100">
-        <button
-          onClick={() => (recording ? stopRec() : startRec())}
-          disabled={thinking}
-          className={`w-32 h-32 rounded-full text-white text-xl shadow-2xl transition ${
-            recording ? 'bg-red-600 scale-110 animate-pulse' : 'bg-amber-700 hover:bg-amber-800'
-          } disabled:bg-stone-400`}
-        >
-          {recording ? '⏹\n停止' : '🎙\n話す'}
-        </button>
-        <p className="text-base text-stone-600">
-          {recording
-            ? 'タップで停止 → 認識した内容を送ります'
-            : 'タップで録音開始。終わったらもう一度タップ'}
-        </p>
+      <footer className="p-4 sm:p-6 flex flex-col items-stretch gap-3 bg-amber-100">
         {recording && interimText && (
-          <div className="w-full max-w-2xl p-3 rounded-lg border-2 border-amber-400 bg-white text-lg text-stone-700 italic">
+          <div className="w-full max-w-2xl mx-auto p-3 rounded-lg border-2 border-amber-400 bg-white text-base text-stone-700 italic">
             {interimText}
           </div>
         )}
 
-        <div className="w-full max-w-2xl flex items-center gap-2 mt-2">
-          <div className="flex-1 h-px bg-amber-300" />
-          <span className="text-sm text-stone-500">または文字で</span>
-          <div className="flex-1 h-px bg-amber-300" />
-        </div>
-
-        <div className="w-full max-w-2xl flex gap-2">
+        <div className="w-full max-w-2xl mx-auto flex gap-2 items-stretch">
           <input
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
             onKeyDown={e => {
-              // IME 変換確定の Enter は誤送信させない
               if (e.key !== 'Enter' || e.shiftKey) return
+              // IME変換確定 Enter で誤送信させない
               if (e.nativeEvent.isComposing || (e as any).keyCode === 229) return
               e.preventDefault()
               if (textInput.trim() && !thinking) {
@@ -403,7 +395,7 @@ export default function DeshiPage() {
                 sendToAI(t)
               }
             }}
-            placeholder="文字で入力する場合はこちら"
+            placeholder="ここに書いて Enter で送信"
             className="flex-1 p-3 text-lg rounded-lg border-2 border-amber-300 bg-white"
           />
           <button
@@ -419,7 +411,21 @@ export default function DeshiPage() {
           >
             送る
           </button>
+          {/* 音声入力はサブ。タップでトグル */}
+          <button
+            onClick={() => (recording ? stopRec() : startRec())}
+            disabled={thinking}
+            title="音声で話す (タップで開始/停止)"
+            className={`px-4 rounded-lg text-white text-xl transition disabled:bg-stone-400 ${
+              recording ? 'bg-red-600 animate-pulse' : 'bg-amber-700/80 hover:bg-amber-800'
+            }`}
+          >
+            {recording ? '⏹' : '🎙'}
+          </button>
         </div>
+        <p className="text-xs text-stone-500 text-center">
+          文字入力がメイン。マイクボタンは音声入力(対応ブラウザのみ)
+        </p>
       </footer>
     </main>
   )

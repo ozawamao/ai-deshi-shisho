@@ -49,9 +49,21 @@ export default function ShishoPage() {
           history,
         }),
       })
-      const { text } = await res.json()
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '')
+        throw new Error(`API ${res.status}: ${errBody.slice(0, 200)}`)
+      }
+      const data = await res.json()
+      const text = (data?.text || '').trim()
+      if (!text) throw new Error('empty response')
       setMsgs(m => [...m, { role: 'assistant', content: text }])
       if (autoSpeak) speak(text)
+    } catch (err) {
+      console.warn('[shisho chat] error:', err)
+      setMsgs(m => [...m, {
+        role: 'assistant',
+        content: 'すみません、応答の取得に失敗しました。少し待ってからもう一度お願いします。',
+      }])
     } finally {
       setThinking(false)
       sendingRef.current = false
