@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { anthropic, MODEL, DESHI_SYSTEM, SHISHO_SYSTEM } from '../../lib/claude'
+import { anthropic, MODEL, renderPrompt } from '../../lib/claude'
 import { supabaseAdmin } from '../../lib/supabase'
 import { loadKnowledgeMd } from '../../lib/knowledge'
+import { getSetting } from '../../lib/settings'
 
 export const runtime = 'nodejs'
 
@@ -57,20 +58,22 @@ export async function POST(req: NextRequest) {
     const summary = (nodes || [])
       .map(n => `- [${n.category}] ${n.content}`)
       .join('\n')
-    system = DESHI_SYSTEM(
-      craftsman.profile || '',
-      summary,
-      craftsman.apprentice_context || '',
-    )
+    const template = await getSetting('deshi_base_prompt')
+    system = renderPrompt(template, {
+      craftsmanProfile: craftsman.profile || '（未設定）',
+      previousKnowledge: summary || '（まだなし）',
+      apprenticeContext: craftsman.apprentice_context || '（特になし — まっさらな状態から学ぶ）',
+    })
   } else {
     const md = await loadKnowledgeMd(craftsmanId)
-    system = SHISHO_SYSTEM(
-      craftsman.name,
-      craftsman.craft,
-      md || '（まだ知識が記録されていません）',
-      learnerContext || '',
-      craftsman.teaching_style || '',
-    )
+    const template = await getSetting('shisho_base_prompt')
+    system = renderPrompt(template, {
+      craftsmanName: craftsman.name,
+      craft: craftsman.craft,
+      knowledgeMd: md || '（まだ知識が記録されていません）',
+      learnerContext: learnerContext || '（未設定）',
+      teachingStyle: craftsman.teaching_style || '学習者のレベルに合わせて噛み砕く。専門用語は1行で補足する。',
+    })
   }
 
   const messages = [

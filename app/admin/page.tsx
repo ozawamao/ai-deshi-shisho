@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState<Craftsman | null>(null)
   const [creating, setCreating] = useState(false)
+  const [tab, setTab] = useState<'people' | 'prompts'>('people')
 
   // --- 自動ログイン (localStorage) ---
   useEffect(() => {
@@ -185,6 +186,30 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+        {/* タブ切替 */}
+        <div className="flex gap-1 border-b border-stone-200">
+          {([
+            ['people', '弟子・師匠'],
+            ['prompts', '基礎プロンプト'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-2 text-sm border-b-2 transition ${
+                tab === key
+                  ? 'border-amber-600 text-amber-700 font-medium'
+                  : 'border-transparent text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'prompts' ? (
+          <PromptsTab pwd={pwd} />
+        ) : (
+          <>
         <div className="flex justify-between items-center">
           <h2 className="text-sm font-medium text-stone-600">{list.length} 人</h2>
           <button
@@ -242,6 +267,8 @@ export default function AdminPage() {
               </li>
             ))}
           </ul>
+        )}
+          </>
         )}
       </div>
 
@@ -424,5 +451,188 @@ function Field({
       {children}
       {help && <p className="text-[10px] text-stone-400 mt-1">{help}</p>}
     </div>
+  )
+}
+
+// =====================================================
+// 基礎プロンプト編集タブ
+// =====================================================
+type PromptKey = 'deshi_base_prompt' | 'shisho_base_prompt'
+
+function PromptsTab({ pwd }: { pwd: string }) {
+  const [values, setValues] = useState<Record<PromptKey, string>>({
+    deshi_base_prompt: '',
+    shisho_base_prompt: '',
+  })
+  const [defaults, setDefaults] = useState<Record<PromptKey, string>>({
+    deshi_base_prompt: '',
+    shisho_base_prompt: '',
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<PromptKey | null>(null)
+  const [dirty, setDirty] = useState<Record<PromptKey, boolean>>({
+    deshi_base_prompt: false,
+    shisho_base_prompt: false,
+  })
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-password': pwd },
+        body: JSON.stringify({ action: 'get_prompts' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+      setValues(data.settings || {})
+      setDefaults(data.defaults || {})
+      setDirty({ deshi_base_prompt: false, shisho_base_prompt: false })
+    } catch (err: any) {
+      alert(`取得失敗: ${err?.message || err}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function save(key: PromptKey) {
+    setSaving(key)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-password': pwd },
+        body: JSON.stringify({ action: 'update_prompt', key, value: values[key] }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+      setDirty((d) => ({ ...d, [key]: false }))
+      alert('保存しました。次の会話から反映されます。')
+    } catch (err: any) {
+      alert(`保存失敗: ${err?.message || err}`)
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function resetToDefault(key: PromptKey) {
+    if (!confirm('デフォルトに戻します。今の編集内容は破棄されます。よろしいですか?')) return
+    setSaving(key)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-password': pwd },
+        body: JSON.stringify({ action: 'reset_prompt', key }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+      setValues((v) => ({ ...v, [key]: data.value }))
+      setDirty((d) => ({ ...d, [key]: false }))
+    } catch (err: any) {
+      alert(`リセット失敗: ${err?.message || err}`)
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  if (loading) return <p className="text-center text-stone-500 py-12">読み込み中…</p>
+
+  return (
+    <div className="space-y-8">
+      <PromptEditor
+        title="AI弟子の基礎プロンプト (聞き方)"
+        description="/deshi 画面でユーザーがAI弟子と対話する時に使われる system prompt。プレースホルダ {{craftsmanProfile}} {{previousKnowledge}} {{apprenticeContext}} は実行時に置換されます。"
+        value={values.deshi_base_prompt}
+        defaultValue={defaults.deshi_base_prompt}
+        dirty={dirty.deshi_base_prompt}
+        saving={saving === 'deshi_base_prompt'}
+        onChange={(v) => {
+          setValues((cur) => ({ ...cur, deshi_base_prompt: v }))
+          setDirty((d) => ({ ...d, deshi_base_prompt: true }))
+        }}
+        onSave={() => save('deshi_base_prompt')}
+        onReset={() => resetToDefault('deshi_base_prompt')}
+      />
+      <PromptEditor
+        title="AI師匠の基礎プロンプト (教え方)"
+        description="/shisho 画面でユーザーがAI師匠に質問する時に使われる system prompt。プレースホルダ {{craftsmanName}} {{craft}} {{knowledgeMd}} {{learnerContext}} {{teachingStyle}} は実行時に置換されます。"
+        value={values.shisho_base_prompt}
+        defaultValue={defaults.shisho_base_prompt}
+        dirty={dirty.shisho_base_prompt}
+        saving={saving === 'shisho_base_prompt'}
+        onChange={(v) => {
+          setValues((cur) => ({ ...cur, shisho_base_prompt: v }))
+          setDirty((d) => ({ ...d, shisho_base_prompt: true }))
+        }}
+        onSave={() => save('shisho_base_prompt')}
+        onReset={() => resetToDefault('shisho_base_prompt')}
+      />
+    </div>
+  )
+}
+
+function PromptEditor({
+  title,
+  description,
+  value,
+  defaultValue,
+  dirty,
+  saving,
+  onChange,
+  onSave,
+  onReset,
+}: {
+  title: string
+  description: string
+  value: string
+  defaultValue: string
+  dirty: boolean
+  saving: boolean
+  onChange: (v: string) => void
+  onSave: () => void
+  onReset: () => void
+}) {
+  const isDefault = value === defaultValue
+  return (
+    <section className="bg-white border border-stone-200 rounded-lg p-4 space-y-3">
+      <div>
+        <h3 className="font-bold text-stone-800">{title}</h3>
+        <p className="text-xs text-stone-500 mt-1">{description}</p>
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={18}
+        className="w-full p-3 text-xs font-mono leading-relaxed border border-stone-300 rounded-lg bg-stone-50 focus:bg-white focus:border-amber-500 outline-none"
+        spellCheck={false}
+      />
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-xs text-stone-500">
+          {value.length} 文字
+          {isDefault && <span className="ml-2 text-stone-400">(デフォルト状態)</span>}
+          {dirty && <span className="ml-2 text-amber-600">未保存の変更あり</span>}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onReset}
+            disabled={saving}
+            className="px-3 py-1.5 text-xs border border-stone-300 rounded text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+          >
+            デフォルトに戻す
+          </button>
+          <button
+            onClick={onSave}
+            disabled={saving || !dirty}
+            className="px-4 py-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded disabled:bg-stone-300"
+          >
+            {saving ? '保存中…' : '保存'}
+          </button>
+        </div>
+      </div>
+    </section>
   )
 }

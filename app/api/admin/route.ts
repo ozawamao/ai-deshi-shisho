@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../lib/supabase'
+import { getAllSettings, saveSetting, DEFAULTS, SettingKey } from '../../lib/settings'
 
 export const runtime = 'nodejs'
 
@@ -131,6 +132,32 @@ export async function POST(req: NextRequest) {
       const { error } = await admin.from('knowledge_nodes').delete().eq('id', knowledgeId)
       if (error) throw error
       return NextResponse.json({ ok: true })
+    }
+
+    if (action === 'get_prompts') {
+      const settings = await getAllSettings()
+      return NextResponse.json({ settings, defaults: DEFAULTS })
+    }
+
+    if (action === 'update_prompt') {
+      const { key, value } = body as { key: SettingKey; value: string }
+      if (!key || !['deshi_base_prompt', 'shisho_base_prompt'].includes(key)) {
+        return NextResponse.json({ error: 'key不正' }, { status: 400 })
+      }
+      if (typeof value !== 'string' || !value.trim()) {
+        return NextResponse.json({ error: 'value必須' }, { status: 400 })
+      }
+      await saveSetting(key, value)
+      return NextResponse.json({ ok: true })
+    }
+
+    if (action === 'reset_prompt') {
+      const { key } = body as { key: SettingKey }
+      if (!key || !['deshi_base_prompt', 'shisho_base_prompt'].includes(key)) {
+        return NextResponse.json({ error: 'key不正' }, { status: 400 })
+      }
+      await saveSetting(key, DEFAULTS[key])
+      return NextResponse.json({ ok: true, value: DEFAULTS[key] })
     }
 
     return NextResponse.json({ error: 'unknown action' }, { status: 400 })

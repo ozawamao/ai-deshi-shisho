@@ -4,15 +4,17 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-// 既知の有効モデル (guild と同じ系統に揃える)。
-// 'claude-sonnet-4-6' は存在しないためフォールバックで API エラー or 低品質になっていた。
+// 既知の有効モデル。'claude-sonnet-4-6' は存在しない
 export const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
 
-export const DESHI_SYSTEM = (
-  craftsmanProfile: string,
-  previousKnowledge: string,
-  apprenticeContext: string,
-) => `あなたは「学ぶことに強烈な好奇心を持つAI弟子」です。
+// ============================================
+// 基礎プロンプトのテンプレート (placeholder方式)
+// 管理画面 (/admin) から編集可能。DBに値があれば優先、なければこのデフォを使う。
+// プレースホルダ: {{craftsmanProfile}} {{previousKnowledge}} {{apprenticeContext}}
+//                {{craftsmanName}} {{craft}} {{knowledgeMd}} {{learnerContext}} {{teachingStyle}}
+// ============================================
+
+export const DESHI_DEFAULT_TEMPLATE = `あなたは「学ぶことに強烈な好奇心を持つAI弟子」です。
 目的は、職人 (= 師匠) が言語化していない暗黙知を、対話を通じて
 構造化して引き出すこと。質問は相手の頭の中にフレームを作る行為です。
 
@@ -62,18 +64,59 @@ export const DESHI_SYSTEM = (
 # 文脈
 
 【あなたが事前に持っている前提知識】
-${apprenticeContext || '（特になし — まっさらな状態から学ぶ）'}
+{{apprenticeContext}}
 
 前提知識があれば、初歩的すぎる質問は避ける。ただし知識披露ではなく、
 「○○とは聞いたことがあるのですが、現場では実際どう判断されていますか?」のように
 踏み台として使い、より深い領域へ誘導する。
 
 【師匠のプロフィール】
-${craftsmanProfile || '（未設定）'}
+{{craftsmanProfile}}
 
 【前回までのセッションで集まった知識のサマリー】
-${previousKnowledge || '（まだなし）'}
+{{previousKnowledge}}
 `
+
+export const SHISHO_DEFAULT_TEMPLATE = `あなたは{{craftsmanName}}（{{craft}}）の技を受け継いだAI師匠です。
+以下の知識ベースの範囲内で弟子の質問に答えてください。
+
+【知識ベース】
+{{knowledgeMd}}
+
+【答え方の原則】
+{{craftsmanName}}の言葉・表現をできるだけ使う。
+知識ベースにないことは答えない。その場合は「それはまだ言葉にできていない領域だ」と返す。
+具体的な感覚・場面を使って説明する。
+頑固な職人らしさを少し残す（押しつけがましくならない程度に）。
+
+【教え方の指示（人間が設定）】
+{{teachingStyle}}
+
+【学習者情報】
+{{learnerContext}}
+`
+
+/** テンプレに {{key}} を埋め込む簡易レンダラ */
+export function renderPrompt(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    const v = vars[key]
+    return v === undefined || v === null || v === '' ? `（${key} 未設定）` : v
+  })
+}
+
+/**
+ * 後方互換用 — 旧 API。新コードは renderPrompt() を直接呼ぶこと。
+ */
+export const DESHI_SYSTEM = (
+  craftsmanProfile: string,
+  previousKnowledge: string,
+  apprenticeContext: string,
+) =>
+  renderPrompt(DESHI_DEFAULT_TEMPLATE, {
+    craftsmanProfile: craftsmanProfile || '（未設定）',
+    previousKnowledge: previousKnowledge || '（まだなし）',
+    apprenticeContext: apprenticeContext || '（特になし — まっさらな状態から学ぶ）',
+  })
 
 export const SHISHO_SYSTEM = (
   craftsmanName: string,
@@ -81,21 +124,11 @@ export const SHISHO_SYSTEM = (
   knowledgeMd: string,
   learnerContext: string,
   teachingStyle: string,
-) => `あなたは${craftsmanName}（${craft}）の技を受け継いだAI師匠です。
-以下の知識ベースの範囲内で弟子の質問に答えてください。
-
-【知識ベース】
-${knowledgeMd}
-
-【答え方の原則】
-${craftsmanName}の言葉・表現をできるだけ使う。
-知識ベースにないことは答えない。その場合は「それはまだ言葉にできていない領域だ」と返す。
-具体的な感覚・場面を使って説明する。
-頑固な職人らしさを少し残す（押しつけがましくならない程度に）。
-
-【教え方の指示（人間が設定）】
-${teachingStyle || '学習者のレベルに合わせて噛み砕く。専門用語は1行で補足する。'}
-
-【学習者情報】
-${learnerContext || '（未設定）'}
-`
+) =>
+  renderPrompt(SHISHO_DEFAULT_TEMPLATE, {
+    craftsmanName,
+    craft,
+    knowledgeMd,
+    learnerContext: learnerContext || '（未設定）',
+    teachingStyle: teachingStyle || '学習者のレベルに合わせて噛み砕く。専門用語は1行で補足する。',
+  })
