@@ -48,18 +48,32 @@ export default function DeshiPage() {
   }, [])
 
   async function startWithExisting(c: Craftsman) {
-    const res = await fetch('/api/session', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'create', craftsmanId: c.id }),
-    })
-    const { sessionId, craftsmanId } = await res.json()
-    setSessionId(sessionId)
-    setCraftsmanId(craftsmanId)
-    setName(c.name)
-    setCraft(c.craft)
-    setStep('chat')
-    setTimeout(() => sendToAI('こんにちは。', true), 300)
+    try {
+      const res = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'create', craftsmanId: c.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(`セッション作成に失敗:\n${data?.error || `HTTP ${res.status}`}`)
+        return
+      }
+      if (!data?.craftsmanId) {
+        alert(`レスポンスが不正: ${JSON.stringify(data).slice(0, 300)}`)
+        return
+      }
+      setSessionId(data.sessionId)
+      setCraftsmanId(data.craftsmanId)
+      setName(c.name)
+      setCraft(c.craft)
+      setStep('chat')
+      // 弟子からの挨拶 (API使わず固定文。API失敗の影響を受けない)
+      const greeting = `${c.name} 師匠、本日もよろしくお願いいたします。\n${c.craft} について、続きを教えていただけますか?\n前回お聞きしたことを踏まえて、もう少し深いところを伺いたいです。`
+      setMsgs([{ role: 'assistant', content: greeting }])
+    } catch (err: any) {
+      alert(`通信エラー: ${err?.message || err}`)
+    }
   }
 
   // 沈黙5秒で促し
