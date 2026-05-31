@@ -158,14 +158,13 @@ export default function ShishoPage() {
         ) : (
           <ul className="grid sm:grid-cols-2 gap-4 max-w-3xl">
             {craftsmen.map(c => {
-              const lv = computeLevel(
-                (c.categories || []).map(cat => ({ category: cat })).concat(
-                  Array.from(
-                    { length: Math.max(0, (c.knowledge_count || 0) - (c.categories?.length || 0)) },
-                    () => ({}),
-                  ),
-                ),
-              )
+              const cats = c.categories || []
+              const extra = Math.max(0, (c.knowledge_count || 0) - cats.length)
+              const lvNodes: Array<{ category?: string | null }> = [
+                ...cats.map(cat => ({ category: cat })),
+                ...Array.from({ length: extra }, () => ({ category: null })),
+              ]
+              const lv = computeLevel(lvNodes)
               return (
                 <li key={c.id}>
                   <button
