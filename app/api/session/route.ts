@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../lib/supabase'
-import { extractKnowledge, buildKnowledgeMd, saveKnowledgeFile } from '../../lib/knowledge'
+import { extractKnowledge, compactKnowledgeMd, saveKnowledgeFile } from '../../lib/knowledge'
 
 export const runtime = 'nodejs'
 
@@ -59,7 +59,8 @@ export async function POST(req: NextRequest) {
       .eq('craftsman_id', craftsmanId)
       .order('created_at', { ascending: false })
 
-    const md = buildKnowledgeMd(craftsman!.name, craftsman!.craft, allNodes || [])
+    // Claude で要約してコンパクト化。失敗時は内部で buildKnowledgeMd フォールバック
+    const md = await compactKnowledgeMd(craftsman!.name, craftsman!.craft, allNodes || [])
     const path = await saveKnowledgeFile(craftsmanId, craftsman!.name, craftsman!.craft, md)
 
     return NextResponse.json({ ok: true, nodesAdded: nodes.length, filePath: path })

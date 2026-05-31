@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../lib/supabase'
 import { getAllSettings, saveSetting, DEFAULTS, SettingKey } from '../../lib/settings'
+import { compactKnowledgeMd, saveKnowledgeFile } from '../../lib/knowledge'
 
 export const runtime = 'nodejs'
 
@@ -149,6 +150,21 @@ export async function POST(req: NextRequest) {
       }
       await saveSetting(key, value)
       return NextResponse.json({ ok: true })
+    }
+
+    if (action === 'rebuild_md') {
+      const { id } = body
+      if (!id) return NextResponse.json({ error: 'id 必須' }, { status: 400 })
+      const { data: craftsman } = await admin.from('craftsmen').select('*').eq('id', id).single()
+      if (!craftsman) return NextResponse.json({ error: 'craftsman not found' }, { status: 404 })
+      const { data: nodes } = await admin
+        .from('knowledge_nodes')
+        .select('*')
+        .eq('craftsman_id', id)
+        .order('created_at', { ascending: true })
+      const md = await compactKnowledgeMd(craftsman.name, craftsman.craft, nodes || [])
+      const path = await saveKnowledgeFile(id, craftsman.name, craftsman.craft, md)
+      return NextResponse.json({ ok: true, filePath: path, nodes: (nodes || []).length, chars: md.length })
     }
 
     if (action === 'reset_prompt') {

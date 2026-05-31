@@ -123,6 +123,16 @@ export default function AdminPage() {
     }
   }
 
+  async function handleRebuild(c: Craftsman) {
+    if (!confirm(`「${c.name}」のナレッジMDを再要約します。古いMDは上書きされます。`)) return
+    try {
+      const data = await api('rebuild_md', { id: c.id })
+      alert(`再要約完了\nノード: ${data.nodes}件 → MD: ${data.chars}文字`)
+    } catch (err: any) {
+      alert(`再要約失敗: ${err?.message || err}`)
+    }
+  }
+
   // ============================================
   // ログイン画面
   // ============================================
@@ -256,6 +266,15 @@ export default function AdminPage() {
                     >
                       編集
                     </button>
+                    {(c.knowledge_count || 0) > 0 && (
+                      <button
+                        onClick={() => handleRebuild(c)}
+                        className="px-3 py-1 text-xs border border-amber-400 text-amber-700 hover:bg-amber-50 rounded"
+                        title="DBの全ナレッジから知識MDをClaude で再要約"
+                      >
+                        再要約
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(c)}
                       className="px-3 py-1 text-xs border border-red-300 text-red-600 hover:bg-red-50 rounded"
