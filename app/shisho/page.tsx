@@ -176,7 +176,7 @@ export default function ShishoPage() {
           <img
             src="/icons/master.png"
             alt="AI師匠"
-            className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
+            className="w-16 h-16 rounded-full object-cover bg-amber-50 shrink-0"
           />
           <div className="min-w-0">
             <div className="font-bold text-stone-800 truncate">{selected.name} 師匠</div>
@@ -208,7 +208,7 @@ export default function ShishoPage() {
               <img
                 src="/icons/master.png"
                 alt="AI師匠"
-                className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
+                className="w-16 h-16 rounded-full object-cover bg-amber-50 shrink-0"
               />
               <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-2 text-stone-500 text-sm">
                 師匠が考えています…
@@ -264,7 +264,7 @@ function ShishoBubble({
         <div className="max-w-[80%] bg-stone-700 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm">
           {content}
         </div>
-        <div className="w-12 h-12 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm font-bold shrink-0">
+        <div className="w-16 h-16 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm font-bold shrink-0">
           You
         </div>
       </div>
@@ -275,7 +275,7 @@ function ShishoBubble({
       <img
         src="/icons/master.png"
         alt="AI師匠"
-        className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
+        className="w-16 h-16 rounded-full object-cover bg-amber-50 shrink-0"
       />
       <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
         {content}
