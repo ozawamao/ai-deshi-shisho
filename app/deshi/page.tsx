@@ -372,7 +372,7 @@ export default function DeshiPage() {
           <img
             src="/icons/apprentice.png"
             alt="AI弟子"
-            className="w-9 h-9 rounded-full object-cover bg-amber-50 shrink-0"
+            className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
           />
           <div className="min-w-0">
             <div className="font-bold text-stone-800 truncate">AI弟子</div>
@@ -403,7 +403,7 @@ export default function DeshiPage() {
               <img
                 src="/icons/apprentice.png"
                 alt="AI弟子"
-                className="w-8 h-8 rounded-full object-cover bg-amber-50 shrink-0"
+                className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
               />
               <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-2 text-stone-500 text-sm">
                 考えています…
@@ -475,7 +475,7 @@ function Bubble({
         <img
           src="/icons/master.png"
           alt="師匠 (あなた)"
-          className="w-8 h-8 rounded-full object-cover bg-amber-50 shrink-0"
+          className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
         />
       </div>
     )
@@ -485,7 +485,7 @@ function Bubble({
       <img
         src="/icons/apprentice.png"
         alt="AI弟子"
-        className="w-8 h-8 rounded-full object-cover bg-amber-50 shrink-0"
+        className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
       />
       <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
         {content}
