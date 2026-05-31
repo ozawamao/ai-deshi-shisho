@@ -72,6 +72,15 @@ export default function Home() {
       <div className="absolute bottom-2 left-0 right-0 z-20 text-center text-xs text-stone-600 opacity-70 pointer-events-none">
         職人の技を、次の代へ
       </div>
+
+      {/* 管理画面リンク (右上、控えめ) */}
+      <Link
+        href="/admin"
+        className="absolute top-3 right-4 z-30 text-xs text-stone-700 hover:text-stone-900 underline opacity-80 hover:opacity-100"
+        title="弟子・師匠・基礎プロンプトの管理"
+      >
+        ⚙ 管理画面
+      </Link>
     </main>
   )
 }
