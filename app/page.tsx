@@ -11,7 +11,7 @@ export default function Home() {
           <div className="text-xs tracking-[0.4em] opacity-70">— APPRENTICE —</div>
           <h2 className="script text-5xl font-bold drop-shadow-sm">AI 弟子</h2>
           <p className="text-center max-w-sm leading-relaxed">
-            師匠から技を聞き取る。<br />
+            師匠（あなた）から技を聞き取ってくれる。<br />
             言葉にしづらい勘どころを、<br />一問ずつ深く尋ねる。
           </p>
           <div className="flex flex-col gap-3 w-full max-w-xs">
@@ -19,7 +19,7 @@ export default function Home() {
               href="/deshi"
               className="guild-frame block text-center py-4 bg-amber-800 text-amber-50 text-xl rounded-sm hover:bg-amber-900 transition"
             >
-              弟子として聞く
+              弟子に教えてあげる
             </Link>
             <Link
               href="/admin/deshi"
@@ -41,8 +41,8 @@ export default function Home() {
           <div className="text-xs tracking-[0.4em] opacity-70">— MASTER —</div>
           <h2 className="script text-5xl font-bold drop-shadow-sm">AI 師匠</h2>
           <p className="text-center max-w-sm leading-relaxed">
-            蓄えられた技を、<br />
-            次の代へ伝える。<br />言葉になった部分の、その範囲で答える。
+            師匠（AI）に蓄えられた技を、<br />
+            次の代（あなた）へ伝える。<br />言葉として残せたものを、その範囲で答える。
           </p>
           <div className="flex flex-col gap-3 w-full max-w-xs">
             <Link
