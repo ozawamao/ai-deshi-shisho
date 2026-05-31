@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { computeLevel } from '../lib/levels'
 
 interface Craftsman {
   id: string
@@ -13,6 +14,7 @@ interface Craftsman {
   created_at: string
   session_count?: number
   knowledge_count?: number
+  categories?: string[]
 }
 
 const LS_PASSWORD_KEY = 'shokunin.admin.pwd'
@@ -248,7 +250,10 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-stone-800">{c.name}</span>
                       <span className="text-xs text-stone-500">— {c.craft}</span>
-                      <StatusBadge knowledgeCount={c.knowledge_count || 0} />
+                      <LevelBadge
+                        nodes={c.categories?.map((cat) => ({ category: cat })) || []}
+                        count={c.knowledge_count || 0}
+                      />
                     </div>
                     {c.profile && (
                       <p className="text-xs text-stone-600 mt-1 line-clamp-2">{c.profile}</p>
@@ -256,6 +261,7 @@ export default function AdminPage() {
                     <div className="flex gap-3 text-[10px] text-stone-500 mt-2">
                       <span>セッション {c.session_count || 0} 回</span>
                       <span>ナレッジ {c.knowledge_count || 0} 件</span>
+                      <span>分野 {c.categories?.length || 0}/5</span>
                       <span>追加日 {new Date(c.created_at).toLocaleDateString('ja-JP')}</span>
                     </div>
                   </div>
@@ -306,24 +312,24 @@ export default function AdminPage() {
   )
 }
 
-function StatusBadge({ knowledgeCount }: { knowledgeCount: number }) {
-  if (knowledgeCount === 0) {
-    return (
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-600">
-        弟子(ヒアリング前)
-      </span>
-    )
-  }
-  if (knowledgeCount < 10) {
-    return (
-      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-        修行中
-      </span>
-    )
-  }
+function LevelBadge({
+  nodes,
+  count,
+}: {
+  nodes: Array<{ category?: string | null }>
+  count: number
+}) {
+  // count を反映するため最低限のダミーノードを補完 (nodes はカテゴリ集合)
+  const effNodes = nodes.length === count
+    ? nodes
+    : [...nodes, ...Array.from({ length: Math.max(0, count - nodes.length) }, () => ({}))]
+  const lv = computeLevel(effNodes)
   return (
-    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white">
-      師匠化
+    <span
+      className={`text-[10px] px-2 py-0.5 rounded ${lv.badge}`}
+      title={`Lv.${lv.rank} ${lv.name} — ${lv.progressNote}`}
+    >
+      {lv.emoji} Lv.{lv.rank} {lv.name}
     </span>
   )
 }

@@ -67,11 +67,33 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.action === 'list_craftsmen') {
-    const { data } = await admin
+    const { data: craftsmen } = await admin
       .from('craftsmen')
       .select('*')
       .order('created_at', { ascending: false })
-    return NextResponse.json({ craftsmen: data || [] })
+    // 各人の knowledge_count + categories を付与 (レベル判定用)
+    const ids = (craftsmen || []).map((c: any) => c.id)
+    const counts = new Map<string, number>()
+    const catSets = new Map<string, Set<string>>()
+    if (ids.length > 0) {
+      const { data: ns } = await admin
+        .from('knowledge_nodes')
+        .select('craftsman_id, category')
+        .in('craftsman_id', ids)
+      for (const r of ns || []) {
+        counts.set(r.craftsman_id, (counts.get(r.craftsman_id) || 0) + 1)
+        if (r.category) {
+          if (!catSets.has(r.craftsman_id)) catSets.set(r.craftsman_id, new Set())
+          catSets.get(r.craftsman_id)!.add(r.category)
+        }
+      }
+    }
+    const enriched = (craftsmen || []).map((c: any) => ({
+      ...c,
+      knowledge_count: counts.get(c.id) || 0,
+      categories: Array.from(catSets.get(c.id) || []),
+    }))
+    return NextResponse.json({ craftsmen: enriched })
   }
 
   if (body.action === 'get_craftsman') {

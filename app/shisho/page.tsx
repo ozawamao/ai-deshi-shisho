@@ -2,8 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getRecognition, speak, cancelSpeak, ensureMicPermission, isSpeechSupported } from '../lib/speech'
+import { computeLevel } from '../lib/levels'
 
-type Craftsman = { id: string; name: string; craft: string; profile: string | null }
+type Craftsman = {
+  id: string
+  name: string
+  craft: string
+  profile: string | null
+  knowledge_count?: number
+  categories?: string[]
+}
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 export default function ShishoPage() {
@@ -149,18 +157,39 @@ export default function ShishoPage() {
           </p>
         ) : (
           <ul className="grid sm:grid-cols-2 gap-4 max-w-3xl">
-            {craftsmen.map(c => (
-              <li key={c.id}>
-                <button
-                  onClick={() => setSelected(c)}
-                  className="w-full text-left p-6 bg-white rounded-2xl shadow hover:shadow-lg border-2 border-stone-200"
-                >
-                  <div className="text-xl font-bold text-stone-800">{c.name}</div>
-                  <div className="text-base text-stone-600">{c.craft}</div>
-                  {c.profile && <div className="text-sm text-stone-500 mt-2">{c.profile}</div>}
-                </button>
-              </li>
-            ))}
+            {craftsmen.map(c => {
+              const lv = computeLevel(
+                (c.categories || []).map(cat => ({ category: cat })).concat(
+                  Array.from(
+                    { length: Math.max(0, (c.knowledge_count || 0) - (c.categories?.length || 0)) },
+                    () => ({}),
+                  ),
+                ),
+              )
+              return (
+                <li key={c.id}>
+                  <button
+                    onClick={() => setSelected(c)}
+                    className="w-full text-left p-6 bg-white rounded-2xl shadow hover:shadow-lg border-2 border-stone-200"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xl font-bold text-stone-800">{c.name}</span>
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded ${lv.badge}`}
+                        title={lv.progressNote}
+                      >
+                        {lv.emoji} Lv.{lv.rank} {lv.name}
+                      </span>
+                    </div>
+                    <div className="text-base text-stone-600 mt-1">{c.craft}</div>
+                    {c.profile && <div className="text-sm text-stone-500 mt-2">{c.profile}</div>}
+                    <div className="text-[11px] text-stone-400 mt-2">
+                      ナレッジ {c.knowledge_count || 0} 件 / 分野 {c.categories?.length || 0}/5
+                    </div>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
         <div className="mt-8"><a href="/" className="text-stone-600 underline">トップに戻る</a></div>

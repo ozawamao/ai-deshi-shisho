@@ -51,10 +51,11 @@ export async function POST(req: NextRequest) {
         .order('created_at', { ascending: false })
       if (error) throw error
 
-      // 各 craftsman の session 数 / knowledge 数を集計
+      // 各 craftsman の session 数 / knowledge 数 / カテゴリ網羅 を集計
       const ids = (craftsmen || []).map((c: any) => c.id)
       let sessCounts = new Map<string, number>()
       let knowCounts = new Map<string, number>()
+      let catSets = new Map<string, Set<string>>()
       if (ids.length > 0) {
         const { data: ss } = await admin
           .from('sessions')
@@ -65,16 +66,21 @@ export async function POST(req: NextRequest) {
         }
         const { data: ns } = await admin
           .from('knowledge_nodes')
-          .select('craftsman_id')
+          .select('craftsman_id, category')
           .in('craftsman_id', ids)
         for (const r of ns || []) {
           knowCounts.set(r.craftsman_id, (knowCounts.get(r.craftsman_id) || 0) + 1)
+          if (r.category) {
+            if (!catSets.has(r.craftsman_id)) catSets.set(r.craftsman_id, new Set())
+            catSets.get(r.craftsman_id)!.add(r.category)
+          }
         }
       }
       const enriched = (craftsmen || []).map((c: any) => ({
         ...c,
         session_count: sessCounts.get(c.id) || 0,
         knowledge_count: knowCounts.get(c.id) || 0,
+        categories: Array.from(catSets.get(c.id) || []),
       }))
       return NextResponse.json({ craftsmen: enriched })
     }
