@@ -472,11 +472,9 @@ function Bubble({
         >
           {content}
         </div>
-        <img
-          src="/icons/master.png"
-          alt="師匠 (あなた)"
-          className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
-        />
+        <div className="w-12 h-12 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm font-bold shrink-0">
+          You
+        </div>
       </div>
     )
   }

@@ -19,6 +19,12 @@ export default function ShishoPage() {
   const interimRef = useRef<string>('')
   const finalRef = useRef<string>('')
   const sendingRef = useRef(false)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!scrollRef.current) return
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [msgs.length, thinking])
 
   useEffect(() => {
     fetch('/api/session', {
@@ -163,60 +169,58 @@ export default function ShishoPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-stone-50 guild-bg-stone">
-      <header className="p-4 bg-stone-200 flex justify-between items-center">
-        <div>
-          <div className="text-lg font-bold text-stone-800">{selected.name} 師匠</div>
-          <div className="text-sm text-stone-600">{selected.craft}</div>
+    <main className="h-[100dvh] flex flex-col bg-stone-50">
+      {/* ヘッダー: 固定 */}
+      <header className="shrink-0 px-4 py-3 bg-white border-b border-stone-200 flex justify-between items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <img
+            src="/icons/master.png"
+            alt="AI師匠"
+            className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
+          />
+          <div className="min-w-0">
+            <div className="font-bold text-stone-800 truncate">{selected.name} 師匠</div>
+            <div className="text-xs text-stone-500 truncate">{selected.craft}</div>
+          </div>
         </div>
-        <div className="flex gap-2 items-center">
-          <label className="flex items-center gap-2 text-sm text-stone-700">
-            <input
-              type="checkbox"
-              checked={autoSpeak}
-              onChange={e => setAutoSpeak(e.target.checked)}
-            />
-            音声で読み上げる
-          </label>
-          <button
-            onClick={() => { setSelected(null); setMsgs([]) }}
-            className="px-3 py-1 text-sm bg-stone-500 text-white rounded"
-          >
-            別の師匠
-          </button>
-        </div>
+        <button
+          onClick={() => { setSelected(null); setMsgs([]) }}
+          className="px-3 py-1.5 bg-stone-600 hover:bg-stone-700 text-white rounded-lg text-xs shrink-0"
+        >
+          別の師匠
+        </button>
       </header>
 
-      <section className="flex-1 overflow-y-auto p-6 space-y-3 max-w-3xl w-full mx-auto">
-        {msgs.length === 0 && (
-          <p className="text-stone-500">質問を書いて「送る」を押してください。</p>
-        )}
-        {msgs.map((m, i) => (
-          <div
-            key={i}
-            className={`p-4 rounded-2xl ${
-              m.role === 'user'
-                ? 'bg-white border border-stone-300 ml-auto max-w-[80%]'
-                : 'bg-stone-700 text-white mr-auto max-w-[80%]'
-            }`}
-          >
-            <div className="whitespace-pre-wrap">{m.content}</div>
-            {m.role === 'assistant' && (
-              <button
-                onClick={() => speak(m.content)}
-                className="mt-2 text-xs underline opacity-75"
-              >
-                ▶ 読み上げ
-              </button>
-            )}
-          </div>
-        ))}
-        {thinking && <div className="text-stone-500">師匠が考えています…</div>}
+      {/* メッセージ領域: 残り高さ、自動下スクロール */}
+      <section
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-3"
+      >
+        <div className="max-w-2xl w-full mx-auto space-y-3">
+          {msgs.length === 0 && (
+            <p className="text-center text-stone-500 text-sm py-8">質問を書いて送信してください。</p>
+          )}
+          {msgs.map((m, i) => (
+            <ShishoBubble key={i} role={m.role} content={m.content} onSpeak={() => speak(m.content)} />
+          ))}
+          {thinking && (
+            <div className="flex gap-2 items-end">
+              <img
+                src="/icons/master.png"
+                alt="AI師匠"
+                className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
+              />
+              <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-2 text-stone-500 text-sm">
+                師匠が考えています…
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
-      <footer className="p-4 bg-stone-100 max-w-3xl w-full mx-auto">
-        <div className="flex gap-2">
-          <input
+      <footer className="shrink-0 px-3 sm:px-6 py-3 bg-white border-t border-stone-200">
+        <div className="w-full max-w-2xl mx-auto flex gap-2 items-end">
+          <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => {
@@ -225,18 +229,60 @@ export default function ShishoPage() {
               e.preventDefault()
               send(input)
             }}
-            placeholder="質問を書いて Enter で送信"
-            className="flex-1 p-3 rounded-lg border border-stone-300"
+            rows={1}
+            placeholder="メッセージを書く"
+            className="flex-1 p-2.5 text-base rounded-2xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-stone-500 outline-none resize-none max-h-32"
           />
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || thinking}
-            className="px-5 py-3 bg-stone-700 text-white rounded-lg disabled:bg-stone-400"
+            className="w-11 h-11 rounded-full bg-stone-700 hover:bg-stone-800 text-white flex items-center justify-center text-xl disabled:bg-stone-300 shrink-0"
+            aria-label="送信"
           >
-            送る
+            ➤
           </button>
         </div>
       </footer>
     </main>
+  )
+}
+
+/** LINE風メッセージバブル (師匠側用) */
+function ShishoBubble({
+  role,
+  content,
+  onSpeak,
+}: {
+  role: 'user' | 'assistant'
+  content: string
+  onSpeak: () => void
+}) {
+  const isMe = role === 'user'
+  if (isMe) {
+    return (
+      <div className="flex gap-2 items-end justify-end">
+        <div className="max-w-[80%] bg-stone-700 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm">
+          {content}
+        </div>
+        <div className="w-12 h-12 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm font-bold shrink-0">
+          You
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex gap-2 items-end">
+      <img
+        src="/icons/master.png"
+        alt="AI師匠"
+        className="w-12 h-12 rounded-full object-cover bg-amber-50 shrink-0"
+      />
+      <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
+        {content}
+        <button onClick={onSpeak} className="block mt-2 text-xs text-stone-400 hover:text-amber-700 underline">
+          ▶ 読み上げ
+        </button>
+      </div>
+    </div>
   )
 }
