@@ -176,16 +176,16 @@ export default function ShishoPage() {
           <img
             src="/icons/master.png"
             alt="AI師匠"
-            className="w-20 h-20 rounded-full object-cover bg-amber-50 shrink-0"
+            className="w-32 h-32 rounded-full object-cover bg-amber-50 shrink-0"
           />
           <div className="min-w-0">
-            <div className="font-bold text-stone-800 truncate text-lg">{selected.name} 師匠</div>
-            <div className="text-sm text-stone-500 truncate">{selected.craft}</div>
+            <div className="font-bold text-stone-800 truncate text-2xl">{selected.name} 師匠</div>
+            <div className="text-base text-stone-500 truncate">{selected.craft}</div>
           </div>
         </div>
         <button
           onClick={() => { setSelected(null); setMsgs([]) }}
-          className="px-4 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded-lg text-sm shrink-0"
+          className="px-5 py-3 bg-stone-600 hover:bg-stone-700 text-white rounded-lg text-lg shrink-0"
         >
           別の師匠
         </button>
@@ -208,9 +208,9 @@ export default function ShishoPage() {
               <img
                 src="/icons/master.png"
                 alt="AI師匠"
-                className="w-20 h-20 rounded-full object-cover bg-amber-50 shrink-0"
+                className="w-32 h-32 rounded-full object-cover bg-amber-50 shrink-0"
               />
-              <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-3 text-stone-500 text-base">
+              <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-6 py-4 text-stone-500 text-xl">
                 師匠が考えています…
               </div>
             </div>
@@ -231,12 +231,12 @@ export default function ShishoPage() {
             }}
             rows={1}
             placeholder="メッセージを書く"
-            className="flex-1 p-3 text-lg rounded-2xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-stone-500 outline-none resize-none max-h-32"
+            className="flex-1 p-4 text-2xl rounded-2xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-stone-500 outline-none resize-none max-h-32"
           />
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || thinking}
-            className="w-14 h-14 rounded-full bg-stone-700 hover:bg-stone-800 text-white flex items-center justify-center text-xl disabled:bg-stone-300 shrink-0"
+            className="w-20 h-20 rounded-full bg-stone-700 hover:bg-stone-800 text-white flex items-center justify-center text-3xl disabled:bg-stone-300 shrink-0"
             aria-label="送信"
           >
             ➤
@@ -261,10 +261,10 @@ function ShishoBubble({
   if (isMe) {
     return (
       <div className="flex gap-2 items-end justify-end">
-        <div className="max-w-[80%] bg-stone-700 text-white rounded-2xl rounded-br-md px-4 py-3 text-[18px] leading-relaxed whitespace-pre-wrap shadow-sm">
+        <div className="max-w-[80%] bg-stone-700 text-white rounded-2xl rounded-br-md px-5 py-4 text-[28px] leading-relaxed whitespace-pre-wrap shadow-sm">
           {content}
         </div>
-        <div className="w-20 h-20 rounded-full bg-stone-700 text-white flex items-center justify-center text-base font-bold shrink-0">
+        <div className="w-32 h-32 rounded-full bg-stone-700 text-white flex items-center justify-center text-2xl font-bold shrink-0">
           You
         </div>
       </div>
@@ -275,9 +275,9 @@ function ShishoBubble({
       <img
         src="/icons/master.png"
         alt="AI師匠"
-        className="w-20 h-20 rounded-full object-cover bg-amber-50 shrink-0"
+        className="w-32 h-32 rounded-full object-cover bg-amber-50 shrink-0"
       />
-      <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-3 text-[18px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
+      <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-5 py-4 text-[28px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
         {content}
         <button onClick={onSpeak} className="block mt-2 text-xs text-stone-400 hover:text-amber-700 underline">
           ▶ 読み上げ
