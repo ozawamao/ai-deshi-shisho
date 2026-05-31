@@ -31,7 +31,7 @@ const SHIHAN: LevelDef = {
   name: '師範',
   emoji: '⛩',
   badge: 'bg-amber-500/40 text-amber-900 border border-amber-600/40',
-  next: { count: 80, cats: 5, toName: '師匠' },
+  next: { count: 600, cats: 5, toName: '師匠' },
 }
 const ICHININMAE: LevelDef = {
   key: 'ichininmae',
@@ -39,7 +39,7 @@ const ICHININMAE: LevelDef = {
   name: '一人前',
   emoji: '⚒',
   badge: 'bg-amber-200 text-amber-900',
-  next: { count: 40, cats: 4, toName: '師範' },
+  next: { count: 400, cats: 4, toName: '師範' },
 }
 const DESHI: LevelDef = {
   key: 'deshi',
@@ -47,7 +47,7 @@ const DESHI: LevelDef = {
   name: '弟子',
   emoji: '🌱',
   badge: 'bg-amber-100 text-amber-800',
-  next: { count: 15, cats: 3, toName: '一人前' },
+  next: { count: 200, cats: 3, toName: '一人前' },
 }
 const MINARAI: LevelDef = {
   key: 'minarai',
@@ -55,7 +55,7 @@ const MINARAI: LevelDef = {
   name: '見習い',
   emoji: '🐣',
   badge: 'bg-stone-100 text-stone-600',
-  next: { count: 3, cats: 0, toName: '弟子' },
+  next: { count: 100, cats: 0, toName: '弟子' },
 }
 
 export const LEVELS: LevelDef[] = [MINARAI, DESHI, ICHININMAE, SHIHAN, SHISHOU]
@@ -93,10 +93,10 @@ export function computeLevel(
   const cats = catSet.size
 
   const matched: LevelDef = (() => {
-    if (count >= 80 && cats >= 5) return SHISHOU
-    if (count >= 40 && cats >= 4) return SHIHAN
-    if (count >= 15 && cats >= 3) return ICHININMAE
-    if (count >= 3) return DESHI
+    if (count >= 600 && cats >= 5) return SHISHOU
+    if (count >= 400 && cats >= 4) return SHIHAN
+    if (count >= 200 && cats >= 3) return ICHININMAE
+    if (count >= 100) return DESHI
     return MINARAI
   })()
 
