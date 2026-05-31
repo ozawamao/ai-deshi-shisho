@@ -169,9 +169,12 @@ export default function ShishoPage() {
   }
 
   return (
-    <main className="h-[100dvh] flex flex-col bg-stone-50">
+    <main className="relative h-[100dvh] flex flex-col"
+      style={{ backgroundImage: "url(/icons/workshop-bg.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}>
+      {/* 背景を薄く見せるためのオーバーレイ */}
+      <div aria-hidden className="absolute inset-0 bg-stone-50/85 pointer-events-none" />
       {/* ヘッダー: 固定 */}
-      <header className="shrink-0 px-4 py-3 bg-white border-b border-stone-200 flex justify-between items-center gap-2">
+      <header className="relative z-10 shrink-0 px-4 py-3 bg-white/90 backdrop-blur border-b border-stone-200 flex justify-between items-center gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <img
             src="/icons/master.png"
@@ -194,7 +197,7 @@ export default function ShishoPage() {
       {/* メッセージ領域: 残り高さ、自動下スクロール */}
       <section
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-3"
+        className="relative z-10 flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-3"
       >
         <div className="max-w-2xl w-full mx-auto space-y-3">
           {msgs.length === 0 && (
@@ -218,7 +221,7 @@ export default function ShishoPage() {
         </div>
       </section>
 
-      <footer className="shrink-0 px-3 sm:px-6 py-3 bg-white border-t border-stone-200">
+      <footer className="relative z-10 shrink-0 px-3 sm:px-6 py-3 bg-white/90 backdrop-blur border-t border-stone-200">
         <div className="w-full max-w-2xl mx-auto flex gap-2 items-end">
           <textarea
             value={input}
