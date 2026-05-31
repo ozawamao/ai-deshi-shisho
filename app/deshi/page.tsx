@@ -372,18 +372,18 @@ export default function DeshiPage() {
           <img
             src="/icons/apprentice.png"
             alt="AI弟子"
-            className="w-16 h-16 rounded-full object-cover bg-amber-50 shrink-0"
+            className="w-20 h-20 rounded-full object-cover bg-amber-50 shrink-0"
           />
           <div className="min-w-0">
-            <div className="font-bold text-stone-800 truncate">AI弟子</div>
-            <div className="text-xs text-stone-500 truncate">
+            <div className="font-bold text-stone-800 truncate text-lg">AI弟子</div>
+            <div className="text-sm text-stone-500 truncate">
               {name} 師匠 — {craft}
             </div>
           </div>
         </div>
         <button
           onClick={endSession}
-          className="px-3 py-1.5 bg-stone-600 hover:bg-stone-700 text-white rounded-lg text-xs shrink-0"
+          className="px-4 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded-lg text-sm shrink-0"
         >
           終える
         </button>
@@ -403,9 +403,9 @@ export default function DeshiPage() {
               <img
                 src="/icons/apprentice.png"
                 alt="AI弟子"
-                className="w-16 h-16 rounded-full object-cover bg-amber-50 shrink-0"
+                className="w-20 h-20 rounded-full object-cover bg-amber-50 shrink-0"
               />
-              <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-2 text-stone-500 text-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-3 text-stone-500 text-base">
                 考えています…
               </div>
             </div>
@@ -431,7 +431,7 @@ export default function DeshiPage() {
             }}
             rows={1}
             placeholder="メッセージを書く"
-            className="flex-1 p-2.5 text-base rounded-2xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-amber-500 outline-none resize-none max-h-32"
+            className="flex-1 p-3 text-lg rounded-2xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-amber-500 outline-none resize-none max-h-32"
           />
           <button
             onClick={() => {
@@ -442,7 +442,7 @@ export default function DeshiPage() {
               }
             }}
             disabled={!textInput.trim() || thinking}
-            className="w-11 h-11 rounded-full bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center text-xl disabled:bg-stone-300 shrink-0"
+            className="w-14 h-14 rounded-full bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center text-xl disabled:bg-stone-300 shrink-0"
             aria-label="送信"
           >
             ➤
@@ -468,11 +468,11 @@ function Bubble({
     return (
       <div className="flex gap-2 items-end justify-end">
         <div
-          className="max-w-[80%] bg-amber-500 text-white rounded-2xl rounded-br-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm"
+          className="max-w-[80%] bg-amber-500 text-white rounded-2xl rounded-br-md px-4 py-3 text-[18px] leading-relaxed whitespace-pre-wrap shadow-sm"
         >
           {content}
         </div>
-        <div className="w-16 h-16 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm font-bold shrink-0">
+        <div className="w-20 h-20 rounded-full bg-stone-700 text-white flex items-center justify-center text-base font-bold shrink-0">
           You
         </div>
       </div>
@@ -483,9 +483,9 @@ function Bubble({
       <img
         src="/icons/apprentice.png"
         alt="AI弟子"
-        className="w-16 h-16 rounded-full object-cover bg-amber-50 shrink-0"
+        className="w-20 h-20 rounded-full object-cover bg-amber-50 shrink-0"
       />
-      <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-3.5 py-2 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
+      <div className="max-w-[80%] bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-3 text-[18px] leading-relaxed whitespace-pre-wrap shadow-sm text-stone-800">
         {content}
       </div>
     </div>
